@@ -2,6 +2,7 @@
 
 from datetime import datetime
 import pandas as pd
+# from PIL import Image
 from fpdf import FlexTemplate,FPDF
 import os
 
@@ -17,23 +18,33 @@ default_image = os.path.join(icon_dir, "anonymous.jpg") # path to the default im
 #  layout definitions  #
 ########################
 
-text_elements = [
-        { 'name': 'id',               'type': 'T', 'font': 'kaiti', 'align': 'C',  'size': 45, 'x1': 0.5,  'y1': 0.25, 'x2': 3,   'y2': 2 },
-        { 'name': 'key',              'type': 'I',    'align': 'C',   'size': 45, 'x1': 0.5,   'y1': 0.25, 'x2': 3,    'y2': 2 },
-        { 'name': 'english_name',     'type': 'T',    'font': 'hp', 'align': 'C',   'size': 8, 'x1': 0.5,  'y1': 0.3,  'x2': 2,   'y2': 0.4 },
-        { 'name': 'chinese_name',     'type': 'T',    'font': 'hp', 'align': 'C',   'size': 8, 'x1': 2,    'y1': 0.3,  'x2': 3,   'y2': 0.4 },
-        { 'name': 'children',         'type': 'T',    'font': 'hp', 'align': 'C',  'size': 10, 'x1': 0.2,  'y1': 0.5,  'x2': 3.3, 'y2': 0.6 },
-        { 'name': 'children_chinese', 'type': 'T',    'font': 'hp', 'align': 'C',  'size': 10, 'x1': 0.2,  'y1': 0.5,  'x2': 3.3, 'y2': 0.6 },
-        { 'name': 'address',          'type': 'T',    'font': 'hp', 'align': 'C',  'size': 10, 'x1': 0.2,  'y1': 0.5,  'x2': 3.3, 'y2': 0.6 },
-        { 'name': 'phone',            'type': 'T',    'font': 'hp', 'align': 'C',  'size': 10, 'x1': 0.2,  'y1': 0.5,  'x2': 3.3, 'y2': 0.6 },
-        { 'name': 'email',            'type': 'T',    'font': 'hp', 'align': 'C',  'size': 10, 'x1': 0.2,  'y1': 0.5,  'x2': 3.3, 'y2': 0.6 },
+icons = {
+        "email":    os.path.join(icon_dir, "email.png"),
+        "children": os.path.join(icon_dir, "children.png"),
+        "address":  os.path.join(icon_dir, "address.png"),
+        "phone":    os.path.join(icon_dir, "phone.png"),
+}
+
+elements = [
+        { 'name': 'english_name',     'type': 'T', 'font': 'hp',    'multiline': True, 'align': 'L', 'size': 7, 'x1': 2.2, 'x2': 3.3, 'y1': 0.1,  'y2': 0.2 },
+        { 'name': 'chinese_name',     'type': 'T', 'font': 'kaiti', 'multiline': True, 'align': 'L', 'size': 5, 'x1': 2.2, 'x2': 3.3, 'y1': 0.40, 'y2': 0.45 },
+        { 'name': 'children',         'type': 'T', 'font': 'hp',    'multiline': True, 'align': 'L', 'size': 5, 'x1': 2.2, 'x2': 3.3, 'y1': 0.55, 'y2': 0.62 },
+        { 'name': 'children_icon',    'type': 'I', 'font': None,    'multiline': None, 'align': 'L', 'size': 4, 'x1': 2.15, 'x2': 2.2, 'y1': 0.55, 'y2': 0.62 },
+        { 'name': 'children_chinese', 'type': 'T', 'font': 'kaiti', 'multiline': True, 'align': 'L', 'size': 5, 'x1': 2.2, 'x2': 3.3, 'y1': 0.70, 'y2': 0.77 },
+        { 'name': 'address',          'type': 'T', 'font': 'hp',    'multiline': True, 'align': 'L', 'size': 4, 'x1': 2.2, 'x2': 3.3, 'y1': 0.85, 'y2': 0.9 },
+        { 'name': 'address_icon',     'type': 'I', 'font': None,    'multiline': None, 'align': 'L', 'size': 4, 'x1': 2.15, 'x2': 2.2, 'y1': 0.85, 'y2': 0.9 },
+        { 'name': 'phone',            'type': 'T', 'font': 'hp',    'multiline': True, 'align': 'L', 'size': 4, 'x1': 2.2, 'x2': 3.3, 'y1': 1.0,  'y2': 1.05 },
+        { 'name': 'phone_icon',       'type': 'I', 'font': None,    'multiline': None, 'align': 'L', 'size': 4, 'x1': 2.15, 'x2': 2.2, 'y1': 1.0,  'y2': 1.05 },
+        { 'name': 'email',            'type': 'T', 'font': 'hp',    'multiline': True, 'align': 'L', 'size': 4, 'x1': 2.2, 'x2': 3.3, 'y1': 1.15, 'y2': 1.2 },
+        { 'name': 'email_icon',       'type': 'I', 'font': None,    'multiline': None, 'align': 'L', 'size': 4, 'x1': 2.15, 'x2': 2.2, 'y1': 1.15, 'y2': 1.2 },
         ]
 
 # read by default 1st sheet of an excel file
 df = pd.read_excel('info.xlsx')
-fpdf = FPDF(orientation="landscape", format="letter", unit="in")
+fpdf = FPDF(orientation="landscape", format=(1.6, 3.5), unit="in")
+fpdf.set_auto_page_break(False, margin = 0.0)
 fpdf.add_font("kaiti", fname="./simkai.ttf")
-fpdf.add_font("hp", fname="./HPSimplified.ttf")
+fpdf.add_font("hp", fname="./HPSimplified_Rg.ttf")
 
 #######################
 #  utility functions  #
@@ -47,12 +58,8 @@ def is_ascii(s):
     else:
         return True
 
-def is_img(f, d=image_dir, ext=['png','jpg','jpeg']):
-    """ take a file without extension, try to detect whether it is an image file """
-    return any([ os.path.isfile(os.path.join(d, f) + '.' + e) for e in ext ])
-
 def get_img(f, default=default_image, d=image_dir, ext=['png','jpg','jpeg']):
-    """ get the 
+    """ get the image for the given path
 
     :f: the image file name, with or without extension
     :default: the default image if none exists
@@ -71,40 +78,24 @@ def get_img(f, default=default_image, d=image_dir, ext=['png','jpg','jpeg']):
 def nstr(s):
     return str(s) if pd.notnull(s) else ""
 
-def nint(s):
-    try:
-        return int(s)
-    except ValueError:
-        return s
-
 for i, row in df.iterrows():
-    # print("{} : {}".format(i, row))
-    # print("is_img(row['key']): {}".format(is_img(nstr(row['key']))))
-    print("get_img(nstr(row['key'])): {}".format(get_img(nstr(row['key']))))
-    t1 = FlexTemplate(fpdf, elements=text_elements)
-    fpdf.add_page(orientation="Landscape", format=(1.25, 3.5))
-    for e in text_elements:
-        print("row[e['name']]: {}".format(row[e['name']]))
-        # t1[e['name']] = nstr(row[e['name']])
-    # t1.render()
-    # print("id", row['id'])
-    # for n in range(5):
-    #     label=f"name{n}"
-    #     name=nstr(row.get(label))
-    #     if n == 0 or name != "":
-    #         t1 = FlexTemplate(fpdf, elements=elements)
-    #         fpdf.add_page(orientation="Landscape", format=(2.25, 3.5))
-    #         img = img_map.get(row['church'], img_map['default'])
-    #         fpdf.image(img, x=0, y=0, w=3.5, keep_aspect_ratio=True)
-    #         if is_ascii(name):
-    #             t1['name_EN'] = name
-    #         else:
-    #             t1['name_CN'] = name
-    #         t1['room'] = nstr(row.get('room'))
-    #         t1['group'] = nstr(row.get('group'))
-    #         print(f"name{i}_{n}: {name}")
-    #         t1['id'] = nstr(nint(row['id'])) + (f"_{n}" if n > 0 else "")
-    #         t1.render()
-    if i >= 5:
-        break
+    img = get_img(nstr(row['key']))
+    print("img: {}".format(img))
+    t1 = FlexTemplate(fpdf, elements=elements)
+    fpdf.add_page(orientation="Landscape", format=(1.6, 3.5))
+    fpdf.image(img, 0.1, 0.1, 0, 1.4)
+    for e in elements:
+        # print("row[e['name']]: {}".format(row[e['name']]))
+        key = e['name']
+        if key in row:
+            print("key: {}".format(key))
+            print("nstr(row[key]): {}".format(nstr(row[key])))
+            t1[key] = nstr(row[key])
+        elif key.endswith("_icon"):
+            pre = key.removesuffix("_icon")
+            if pre in row and pd.notnull(row[pre]):
+                t1[key] = icons[pre]
+    t1.render()
+    # if i >= 5:
+    #     break
 fpdf.output(f"out_{datetime.now().strftime('%Y%m%d%H%M%S')}.pdf")
