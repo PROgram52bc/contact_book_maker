@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
 
+# TODO: 
+# Script:
+# - Extract the configs to yaml
+# Documentation: 
+# - How to run and set up on Windows? 
+# - Example excel sheet and output. 
+# - Demo for the options. 
+# <2024-06-16, David Deng> #
+
 from datetime import datetime
 import pandas as pd
 from fpdf import FlexTemplate,FPDF
@@ -35,14 +44,16 @@ page_height = 5
 item_height = 1.6
 item_scale  = 1
 
+info_width = page_width - img_width
+
 ############
 #  Styles  #
 ############
 
 gen_toc          = True # Generate table of content?
 gen_page_num     = True # Generate page number?
-symmetric_layout = True # Symmetric Layout, where the image and description will be reversed on even pages
-reverse_layout   = False # Reverse the order of image and description on all pages
+symmetric_layout = False # Symmetric Layout, where the image and description will be reversed on even pages
+reverse_layout   = True # Reverse the order of image and description on all pages
 
 ########################
 #  layout definitions  #
@@ -108,25 +119,49 @@ def gen_pdf(name):
 
     print("generating: {}".format(name))
     for i, row in df.iterrows():
-        print(row['status'])
-        if row['status'] == 'Inactive':
-            print(f"skipping {row['key']} because inactive")
-            continue
         img = get_img(nstr(row['key']))
-        print("img: {}".format(img))
+
+        # add a new page if needed
         if i % num_per_page == 0:
             fpdf.add_page(orientation="Portrait", format=(page_width, page_height))
-        t1 = FlexTemplate(fpdf, elements=elements)
-        fpdf.image(img, img_margin, img_margin + item_height * (i % num_per_page), 0, item_scale * (item_height - img_margin * 2))
+
+        even_page = (i // num_per_page) % 2 == 0
+
+        # fill in information
+        info = FlexTemplate(fpdf, elements=elements)
         for e in elements:
             key = e['name']
             if key in row:
-                t1[key] = nstr(row[key])
+                info[key] = nstr(row[key])
             elif key.endswith("_icon"):
                 pre = key.removesuffix("_icon")
                 if pre in row and pd.notnull(row[pre]):
-                    t1[key] = icons[pre]
-        t1.render(offsetx=img_width, offsety=(i % num_per_page) * item_height, scale=item_scale)
+                    info[key] = icons[pre]
+
+        # do some computation on the layout
+        reverse = (even_page and symmetric_layout) ^ reverse_layout # whether to reverse image and info or not for this item
+
+        img_x = img_margin if reverse else info_width + img_margin  # img on the 
+        info_x = img_margin * 2 + img_width if reverse else 0
+
+        img_y = img_margin + item_height * (i % num_per_page)
+        info_y = (i % num_per_page) * item_height
+
+
+        # render info
+        info.render(
+                offsetx=info_x,
+                offsety=info_y,
+                scale=item_scale)
+
+        # render image
+        fpdf.image(
+                img,
+                img_x,
+                img_y,
+                0,
+                item_scale * (item_height - img_margin * 2))
+
     fpdf.output(f"{name}_out_{datetime.now().strftime('%Y%m%d%H%M%S')}.pdf")
 
 gen_pdf("info_current")
