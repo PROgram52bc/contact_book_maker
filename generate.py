@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
 
-# TODO: 
+# TODO:
 # Script:
+# - TOC generation
 # - Extract the configs to yaml
-# Documentation: 
-# - How to run and set up on Windows? 
-# - Example excel sheet and output. 
-# - Demo for the options. 
+# Documentation:
+# - How to run and set up on Windows?
+# - Example excel sheet and output.
+# - Demo for the options.
 # <2024-06-16, David Deng> #
 
 from datetime import datetime
 import pandas as pd
-from fpdf import FlexTemplate,FPDF
+from fpdf import FlexTemplate,FPDF,TitleStyle
+from fpdf.outline import OutlineSection
+from fpdf.enums import XPos
 import os
 
 ###########
@@ -29,6 +32,15 @@ icons         = {
         "phone":    os.path.join(icon_dir, "phone.png"),
 }
 
+############
+#  Styles  #
+############
+
+gen_toc          = True # Generate table of content?
+gen_page_num     = True # Generate page number?
+symmetric_layout = True # Symmetric Layout, where the image and description will be reversed on even pages
+reverse_layout   = True # Reverse the order of image and description on all pages
+
 ###############
 #  Constants  #
 ###############
@@ -37,23 +49,16 @@ num_per_page = 3 # number of items per page
 
 # All units are in inches
 
-page_width  = 3.5
-img_width   = 2
-img_margin  = 0.1 # bottom and top margin for the image
-page_height = 5
+info_width = 1.5
+img_width   = 2 # image width, including margin
+img_margin  = 0.1 # margin around the image
 item_height = 1.6
+footer_height = 0.2
+
 item_scale  = 1
 
-info_width = page_width - img_width
-
-############
-#  Styles  #
-############
-
-gen_toc          = True # Generate table of content?
-gen_page_num     = True # Generate page number?
-symmetric_layout = False # Symmetric Layout, where the image and description will be reversed on even pages
-reverse_layout   = True # Reverse the order of image and description on all pages
+page_height = item_height * num_per_page + (footer_height if gen_page_num else 0)
+page_width  = info_width + img_width
 
 ########################
 #  layout definitions  #
@@ -105,25 +110,77 @@ def get_img(f, default=default_image, d=image_dir, ext=['png','jpg','jpeg']):
 def nstr(s):
     return str(s) if pd.notnull(s) else ""
 
+def p(pdf, text, **kwargs):
+    "Inserts a paragraph"
+    pdf.multi_cell(
+        w=pdf.epw,
+        h=pdf.font_size,
+        text=text,
+        new_x="LMARGIN",
+        new_y="NEXT",
+        **kwargs,
+    )
+
 ##########
 #  Main  #
 ##########
 
-def gen_pdf(name):
-# read by default 1st sheet of an excel file
-    df = pd.read_excel(f"{name}.xlsx")
-    fpdf = FPDF(orientation="portrait", format=(page_width, page_height), unit="in")
-    fpdf.set_auto_page_break(False, margin = 0.0)
-    fpdf.add_font("kaiti", fname="./simkai.ttf")
-    fpdf.add_font("hp", fname="./HPSimplified_Rg.ttf")
+def render_toc(pdf, outline):
+    pdf.set_auto_page_break(True, margin=0.5)
+    print("len(outline): {}".format(len(outline)))
+    pdf.y += 0.1
+    pdf.x = pdf.l_margin
+    pdf.set_font("Courier", size=5)
+    for section in outline:
+        link = pdf.add_link()
+        pdf.set_link(link, page=section.page_number)
+        text = f'{" " * section.level * 2} {section.name} {"." * (48 - section.level*2 - len(section.name))} {section.page_number}'
+        print("text: {}".format(text))
+        p(pdf, text, align="J", link=link)
 
-    print("generating: {}".format(name))
+def gen_pdf(df, fpdf, title=None):
+# read by default 1st sheet of an excel file
+    fpdf.set_auto_page_break(False)
+
     for i, row in df.iterrows():
         img = get_img(nstr(row['key']))
+        print("row['english_name']: {}".format(row['english_name']))
 
-        # add a new page if needed
-        if i % num_per_page == 0:
+        # add a new page if needed, not for the first page, because we already had a page
+        if i % num_per_page == 0 and i != 0:
             fpdf.add_page(orientation="Portrait", format=(page_width, page_height))
+        # render footer
+        if i % num_per_page == 0 and gen_page_num:
+            with fpdf.local_context():
+                old_y = fpdf.y
+                fpdf.set_y(-footer_height)
+                fpdf.set_font('hp',size=5)
+                fpdf.cell(0, footer_height, text=f'Page { fpdf.page_no() }', align='C')
+                fpdf.set_y(old_y)
+
+        with fpdf.local_context():
+            fpdf.set_section_title_styles(
+                # Level 0 titles:
+                TitleStyle(
+                    font_family="hp",
+                    font_size_pt=2,
+                    t_margin=0,
+                    l_margin=-1000,
+                    b_margin=0,
+                ),
+                # Level 1 titles:
+                TitleStyle(
+                    font_family="hp",
+                    font_size_pt=2,
+                    t_margin=0,
+                    l_margin=-1000,
+                    b_margin=0,
+                ),
+            )
+            if i == 0 and title is not None:
+                print("title: {}".format(title))
+                fpdf.start_section(title, level=0)
+            fpdf.start_section(row['english_name'], level=1)
 
         even_page = (i // num_per_page) % 2 == 0
 
@@ -141,28 +198,45 @@ def gen_pdf(name):
         # do some computation on the layout
         reverse = (even_page and symmetric_layout) ^ reverse_layout # whether to reverse image and info or not for this item
 
-        img_x = img_margin if reverse else info_width + img_margin  # img on the 
+        img_x = img_margin if reverse else info_width + img_margin  # img on the
         info_x = img_margin * 2 + img_width if reverse else 0
 
         img_y = img_margin + item_height * (i % num_per_page)
         info_y = (i % num_per_page) * item_height
 
-
         # render info
-        info.render(
-                offsetx=info_x,
-                offsety=info_y,
-                scale=item_scale)
+        with fpdf.local_context():
+            info.render(
+                    offsetx=info_x,
+                    offsety=info_y,
+                    scale=item_scale)
 
-        # render image
-        fpdf.image(
-                img,
-                img_x,
-                img_y,
-                0,
-                item_scale * (item_height - img_margin * 2))
+            # render image
+            fpdf.image(
+                    img,
+                    img_x,
+                    img_y,
+                    0,
+                    item_scale * (item_height - img_margin * 2))
 
-    fpdf.output(f"{name}_out_{datetime.now().strftime('%Y%m%d%H%M%S')}.pdf")
 
-gen_pdf("info_current")
-# gen_pdf("info_previous")
+fpdf = FPDF(orientation="portrait", format=(page_width, page_height), unit="in")
+fpdf.add_font("kaiti", fname="./simkai.ttf")
+fpdf.add_font("hp", fname="./HPSimplified_Rg.ttf")
+
+df_current = pd.read_excel(f"info_current.xlsx")
+df_previous = pd.read_excel(f"info_previous.xlsx")
+
+fpdf.add_page()
+fpdf.set_y(0.5)
+fpdf.set_font("hp", size=10)
+with fpdf.local_context():
+    p(fpdf, "GLCAC Directory List 2024", align="C")
+
+fpdf.insert_toc_placeholder(render_toc, 2)
+
+gen_pdf(df_current, fpdf, "Current Members")
+fpdf.add_page()
+gen_pdf(df_previous, fpdf, "Previous Members")
+
+fpdf.output(f"out_{datetime.now().strftime('%Y%m%d%H%M%S')}.pdf")
