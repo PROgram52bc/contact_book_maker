@@ -2,7 +2,6 @@
 
 # TODO:
 # Script:
-# - TOC generation
 # - Extract the configs to yaml
 # Documentation:
 # - How to run and set up on Windows?
@@ -38,6 +37,7 @@ icons         = {
 
 gen_toc          = True # Generate table of content?
 gen_page_num     = True # Generate page number?
+gen_header       = True # Generate header indicating section?
 symmetric_layout = True # Symmetric Layout, where the image and description will be reversed on even pages
 reverse_layout   = True # Reverse the order of image and description on all pages
 
@@ -53,11 +53,14 @@ info_width = 1.5
 img_width   = 2 # image width, including margin
 img_margin  = 0.1 # margin around the image
 item_height = 1.6
+header_height = 0.2
 footer_height = 0.2
 
 item_scale  = 1
 
-page_height = item_height * num_per_page + (footer_height if gen_page_num else 0)
+page_height = item_height * num_per_page + \
+        (header_height if gen_header else 0) + \
+        (footer_height if gen_page_num else 0)
 page_width  = info_width + img_width
 
 ########################
@@ -149,6 +152,16 @@ def gen_pdf(df, fpdf, title=None):
         # add a new page if needed, not for the first page, because we already had a page
         if i % num_per_page == 0 and i != 0:
             fpdf.add_page(orientation="Portrait", format=(page_width, page_height))
+
+        # render header
+        if i % num_per_page == 0 and gen_header and title is not None:
+            with fpdf.local_context():
+                old_y = fpdf.y
+                fpdf.set_y(0)
+                fpdf.set_font('hp',size=5)
+                fpdf.cell(0, header_height, text=title, align='C')
+                fpdf.set_y(old_y)
+
         # render footer
         if i % num_per_page == 0 and gen_page_num:
             with fpdf.local_context():
@@ -160,7 +173,7 @@ def gen_pdf(df, fpdf, title=None):
 
         with fpdf.local_context():
             fpdf.set_section_title_styles(
-                # Level 0 titles:
+                # Level 0 titles: a hack to render the text on invisible areas
                 TitleStyle(
                     font_family="hp",
                     font_size_pt=2,
@@ -201,8 +214,8 @@ def gen_pdf(df, fpdf, title=None):
         img_x = img_margin if reverse else info_width + img_margin  # img on the
         info_x = img_margin * 2 + img_width if reverse else 0
 
-        img_y = img_margin + item_height * (i % num_per_page)
-        info_y = (i % num_per_page) * item_height
+        img_y = header_height + img_margin + item_height * (i % num_per_page)
+        info_y = header_height + (i % num_per_page) * item_height
 
         # render info
         with fpdf.local_context():
