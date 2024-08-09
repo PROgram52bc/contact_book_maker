@@ -157,8 +157,8 @@ def gen_pdf(df, fpdf, title=None):
         if i % num_per_page == 0 and gen_header and title is not None:
             with fpdf.local_context():
                 old_y = fpdf.y
-                fpdf.set_y(0)
-                fpdf.set_font('hp',size=5)
+                fpdf.set_y(0.5 * header_height)
+                fpdf.set_font('hp',size=6)
                 fpdf.cell(0, header_height, text=title, align='C')
                 fpdf.set_y(old_y)
 
@@ -166,8 +166,8 @@ def gen_pdf(df, fpdf, title=None):
         if i % num_per_page == 0 and gen_page_num:
             with fpdf.local_context():
                 old_y = fpdf.y
-                fpdf.set_y(-footer_height)
-                fpdf.set_font('hp',size=5)
+                fpdf.set_y(-1.5 * footer_height)
+                fpdf.set_font('hp',size=6)
                 fpdf.cell(0, footer_height, text=f'Page { fpdf.page_no() }', align='C')
                 fpdf.set_y(old_y)
 
@@ -237,8 +237,8 @@ fpdf = FPDF(orientation="portrait", format=(page_width, page_height), unit="in")
 fpdf.add_font("kaiti", fname="./simkai.ttf")
 fpdf.add_font("hp", fname="./HPSimplified_Rg.ttf")
 
-df_current = pd.read_excel(f"info_current.xlsx")
-df_previous = pd.read_excel(f"info_previous.xlsx")
+df_current = pd.read_excel(f"info_new.xlsx", sheet_name="info_current")
+df_previous = pd.read_excel(f"info_new.xlsx", sheet_name="info_previous")
 
 fpdf.add_page()
 fpdf.set_y(0.5)
