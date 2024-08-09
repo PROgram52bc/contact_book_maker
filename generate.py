@@ -15,6 +15,7 @@ from fpdf import FlexTemplate,FPDF,TitleStyle
 from fpdf.outline import OutlineSection
 from fpdf.enums import XPos
 import os
+import sys
 
 ###########
 #  Paths  #
@@ -248,8 +249,13 @@ with fpdf.local_context():
 
 fpdf.insert_toc_placeholder(render_toc, 2)
 
-gen_pdf(df_current, fpdf, "Current Members")
+gen_pdf(df_current, fpdf, "Current Members/Adherence")
 fpdf.add_page()
-gen_pdf(df_previous, fpdf, "Previous Members")
+gen_pdf(df_previous, fpdf, "Previous Members/Adherence")
 
-fpdf.output(f"out_{datetime.now().strftime('%Y%m%d%H%M%S')}.pdf")
+dest = f"out_{datetime.now().strftime('%Y%m%d%H%M%S')}.pdf"
+
+if sys.argc == 1:
+    dest=sys.argv[0]
+
+fpdf.output(dest)
