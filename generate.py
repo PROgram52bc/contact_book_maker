@@ -14,6 +14,7 @@ import pandas as pd
 from fpdf import FlexTemplate,FPDF,TitleStyle
 from fpdf.outline import OutlineSection
 from fpdf.enums import XPos
+import imagesize
 import os
 import sys
 
@@ -50,10 +51,10 @@ num_per_page = 3 # number of items per page
 
 # All units are in inches
 
-info_width = 1.5
+info_width = 2
 img_width   = 2 # image width, including margin
 img_margin  = 0.1 # margin around the image
-item_height = 1.6
+item_height = 2.0
 header_height = 0.2
 footer_height = 0.2
 
@@ -69,17 +70,17 @@ page_width  = info_width + img_width
 ########################
 
 elements = [
-        { 'name': 'english_name',     'type': 'T', 'font': 'hp',    'multiline': True, 'align': 'L', 'size': 7, 'x1': 0.2,  'x2': 1.3, 'y1': 0.1,  'y2': 0.2 },
-        { 'name': 'chinese_name',     'type': 'T', 'font': 'kaiti', 'multiline': True, 'align': 'L', 'size': 5, 'x1': 0.2,  'x2': 1.3, 'y1': 0.40, 'y2': 0.45 },
-        { 'name': 'children',         'type': 'T', 'font': 'hp',    'multiline': True, 'align': 'L', 'size': 5, 'x1': 0.2,  'x2': 1.3, 'y1': 0.55, 'y2': 0.62 },
-        { 'name': 'children_icon',    'type': 'I', 'font': None,    'multiline': None, 'align': 'L', 'size': 4, 'x1': 0.15, 'x2': 0.2, 'y1': 0.55, 'y2': 0.62 },
-        { 'name': 'children_chinese', 'type': 'T', 'font': 'kaiti', 'multiline': True, 'align': 'L', 'size': 5, 'x1': 0.2,  'x2': 1.3, 'y1': 0.70, 'y2': 0.77 },
-        { 'name': 'address',          'type': 'T', 'font': 'hp',    'multiline': True, 'align': 'L', 'size': 4, 'x1': 0.2,  'x2': 1.3, 'y1': 0.85, 'y2': 0.9 },
-        { 'name': 'address_icon',     'type': 'I', 'font': None,    'multiline': None, 'align': 'L', 'size': 4, 'x1': 0.15, 'x2': 0.2, 'y1': 0.85, 'y2': 0.9 },
-        { 'name': 'phone',            'type': 'T', 'font': 'hp',    'multiline': True, 'align': 'L', 'size': 4, 'x1': 0.2,  'x2': 1.3, 'y1': 1.0,  'y2': 1.05 },
-        { 'name': 'phone_icon',       'type': 'I', 'font': None,    'multiline': None, 'align': 'L', 'size': 4, 'x1': 0.15, 'x2': 0.2, 'y1': 1.0,  'y2': 1.05 },
-        { 'name': 'email',            'type': 'T', 'font': 'hp',    'multiline': True, 'align': 'L', 'size': 4, 'x1': 0.2,  'x2': 1.3, 'y1': 1.15, 'y2': 1.2 },
-        { 'name': 'email_icon',       'type': 'I', 'font': None,    'multiline': None, 'align': 'L', 'size': 4, 'x1': 0.15, 'x2': 0.2, 'y1': 1.15, 'y2': 1.2 },
+        { 'name': 'english_name',     'type': 'T', 'font': 'hp',    'multiline': True, 'align': 'L', 'size': 9, 'x1': 0.2,  'x2': 1.8, 'y1': 0.1,  'y2': 0.2 },
+        { 'name': 'chinese_name',     'type': 'T', 'font': 'kaiti', 'multiline': True, 'align': 'L', 'size': 7, 'x1': 0.2,  'x2': 1.8, 'y1': 0.40, 'y2': 0.45 },
+        { 'name': 'children',         'type': 'T', 'font': 'hp',    'multiline': True, 'align': 'L', 'size': 7, 'x1': 0.2,  'x2': 1.8, 'y1': 0.55, 'y2': 0.7 },
+        { 'name': 'children_icon',    'type': 'I', 'font': None,    'multiline': None, 'align': 'L', 'size': 7, 'x1': 0.05, 'x2': 0.2, 'y1': 0.55, 'y2': 0.7 },
+        { 'name': 'children_chinese', 'type': 'T', 'font': 'kaiti', 'multiline': True, 'align': 'L', 'size': 7, 'x1': 0.2,  'x2': 1.8, 'y1': 0.70, 'y2': 0.9 },
+        { 'name': 'address',          'type': 'T', 'font': 'hp',    'multiline': True, 'align': 'L', 'size': 7, 'x1': 0.2,  'x2': 1.8, 'y1': 0.85, 'y2': 1.0 },
+        { 'name': 'address_icon',     'type': 'I', 'font': None,    'multiline': None, 'align': 'L', 'size': 7, 'x1': 0.05, 'x2': 0.2, 'y1': 0.85, 'y2': 1.0 },
+        { 'name': 'phone',            'type': 'T', 'font': 'hp',    'multiline': True, 'align': 'L', 'size': 7, 'x1': 0.2,  'x2': 1.8, 'y1': 1.15, 'y2': 1.3 },
+        { 'name': 'phone_icon',       'type': 'I', 'font': None,    'multiline': None, 'align': 'L', 'size': 7, 'x1': 0.05, 'x2': 0.2, 'y1': 1.15, 'y2': 1.3 },
+        { 'name': 'email',            'type': 'T', 'font': 'hp',    'multiline': True, 'align': 'L', 'size': 7, 'x1': 0.2,  'x2': 1.8, 'y1': 1.6, 'y2': 1.75 },
+        { 'name': 'email_icon',       'type': 'I', 'font': None,    'multiline': None, 'align': 'L', 'size': 7, 'x1': 0.05, 'x2': 0.2, 'y1': 1.6, 'y2': 1.75 },
         ]
 
 #######################
@@ -130,11 +131,11 @@ def p(pdf, text, **kwargs):
 ##########
 
 def render_toc(pdf, outline):
-    pdf.set_auto_page_break(True, margin=0.5)
+    pdf.set_auto_page_break(True, margin=0.3)
     print("len(outline): {}".format(len(outline)))
     pdf.y += 0.1
     pdf.x = pdf.l_margin
-    pdf.set_font("Courier", size=5)
+    pdf.set_font("Courier", size=7)
     for section in outline:
         link = pdf.add_link()
         pdf.set_link(link, page=section.page_number)
@@ -158,8 +159,8 @@ def gen_pdf(df, fpdf, title=None):
         if i % num_per_page == 0 and gen_header and title is not None:
             with fpdf.local_context():
                 old_y = fpdf.y
-                fpdf.set_y(0.5 * header_height)
-                fpdf.set_font('hp',size=6)
+                fpdf.set_y(0.2 * header_height)
+                fpdf.set_font('hp',size=8)
                 fpdf.cell(0, header_height, text=title, align='C')
                 fpdf.set_y(old_y)
 
@@ -167,8 +168,8 @@ def gen_pdf(df, fpdf, title=None):
         if i % num_per_page == 0 and gen_page_num:
             with fpdf.local_context():
                 old_y = fpdf.y
-                fpdf.set_y(-1.5 * footer_height)
-                fpdf.set_font('hp',size=6)
+                fpdf.set_y(-1.2 * footer_height)
+                fpdf.set_font('hp',size=8)
                 fpdf.cell(0, footer_height, text=f'Page { fpdf.page_no() }', align='C')
                 fpdf.set_y(old_y)
 
@@ -218,6 +219,16 @@ def gen_pdf(df, fpdf, title=None):
         img_y = header_height + img_margin + item_height * (i % num_per_page)
         info_y = header_height + (i % num_per_page) * item_height
 
+        w,h = imagesize.get(img)
+        if w > h:
+            # fit by width
+            img_w = item_scale * (img_width - img_margin * 2)
+            img_h = 0
+        else:
+            # fit by height
+            img_w = 0
+            img_h = item_scale * (item_height - img_margin * 2)
+
         # render info
         with fpdf.local_context():
             info.render(
@@ -230,8 +241,9 @@ def gen_pdf(df, fpdf, title=None):
                     img,
                     img_x,
                     img_y,
-                    0,
-                    item_scale * (item_height - img_margin * 2))
+                    img_w,
+                    img_h,
+                    )
 
 
 fpdf = FPDF(orientation="portrait", format=(page_width, page_height), unit="in")
@@ -242,12 +254,13 @@ df_current = pd.read_excel(f"info_new.xlsx", sheet_name="info_current")
 df_previous = pd.read_excel(f"info_new.xlsx", sheet_name="info_previous")
 
 fpdf.add_page()
-fpdf.set_y(0.5)
-fpdf.set_font("hp", size=10)
+fpdf.set_y(0.2)
+fpdf.set_font("hp", size=15)
 with fpdf.local_context():
     p(fpdf, "GLCAC Directory List 2024", align="C")
 
-fpdf.insert_toc_placeholder(render_toc, 2)
+if gen_toc:
+    fpdf.insert_toc_placeholder(render_toc, 2)
 
 gen_pdf(df_current, fpdf, "Current Members/Adherence")
 fpdf.add_page()
@@ -255,7 +268,7 @@ gen_pdf(df_previous, fpdf, "Previous Members/Adherence")
 
 dest = f"out_{datetime.now().strftime('%Y%m%d%H%M%S')}.pdf"
 
-if sys.argc == 1:
-    dest=sys.argv[0]
+if len(sys.argv) == 2:
+    dest = sys.argv[1]
 
 fpdf.output(dest)
