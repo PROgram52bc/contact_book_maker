@@ -14,6 +14,7 @@ import pandas as pd
 from fpdf import FlexTemplate,FPDF,TitleStyle
 from fpdf.outline import OutlineSection
 from fpdf.enums import XPos
+from PIL import ImageFont
 import imagesize
 import os
 import sys
@@ -33,6 +34,12 @@ icons         = {
         "phone":    os.path.join(icon_dir, "phone.png"),
 }
 
+fonts = {
+        "kaiti": "./simkai.ttf",
+        "hp": "./HPSimplified_Rg.ttf",
+        "noto": "./NotoEmoji.ttf",
+}
+
 ############
 #  Styles  #
 ############
@@ -48,13 +55,15 @@ reverse_layout   = True # Reverse the order of image and description on all page
 ###############
 
 num_per_page = 3 # number of items per page
+item_height = 2.0 # the height for each person/family
 
 # All units are in inches
 
-info_width = 2
-img_width   = 2 # image width, including margin
-img_margin  = 0.1 # margin around the image
-item_height = 2.0
+info_width = 2.5 # info width, including icons and margin
+info_margin = 0.0625 # margin at both ends
+icon_width = 0.125
+img_width   = 1.5 # image width, including margin
+img_margin  = 0.05 # margin around the image
 header_height = 0.2
 footer_height = 0.2
 
@@ -65,23 +74,143 @@ page_height = item_height * num_per_page + \
         (footer_height if gen_page_num else 0)
 page_width  = info_width + img_width
 
+icon_x1 = info_margin
+icon_x2 = icon_x1 + icon_width
+
+info_x1 = icon_x2 + info_margin
+info_x2 = info_width - info_margin
+
+print("icon_x1: {}".format(icon_x1))
+print("icon_x2: {}".format(icon_x2))
+print("info_x1: {}".format(info_x1))
+print("info_x2: {}".format(info_x2))
+
+header_font_size = 12
+info_font_size = 10
+
 ########################
 #  layout definitions  #
 ########################
 
-elements = [
-        { 'name': 'english_name',     'type': 'T', 'font': 'hp',    'multiline': True, 'align': 'L', 'size': 9, 'x1': 0.2,  'x2': 1.8, 'y1': 0.1,  'y2': 0.2 },
-        { 'name': 'chinese_name',     'type': 'T', 'font': 'kaiti', 'multiline': True, 'align': 'L', 'size': 7, 'x1': 0.2,  'x2': 1.8, 'y1': 0.40, 'y2': 0.45 },
-        { 'name': 'children',         'type': 'T', 'font': 'hp',    'multiline': True, 'align': 'L', 'size': 7, 'x1': 0.2,  'x2': 1.8, 'y1': 0.55, 'y2': 0.7 },
-        { 'name': 'children_icon',    'type': 'I', 'font': None,    'multiline': None, 'align': 'L', 'size': 7, 'x1': 0.05, 'x2': 0.2, 'y1': 0.55, 'y2': 0.7 },
-        { 'name': 'children_chinese', 'type': 'T', 'font': 'kaiti', 'multiline': True, 'align': 'L', 'size': 7, 'x1': 0.2,  'x2': 1.8, 'y1': 0.70, 'y2': 0.9 },
-        { 'name': 'address',          'type': 'T', 'font': 'hp',    'multiline': True, 'align': 'L', 'size': 7, 'x1': 0.2,  'x2': 1.8, 'y1': 0.85, 'y2': 1.0 },
-        { 'name': 'address_icon',     'type': 'I', 'font': None,    'multiline': None, 'align': 'L', 'size': 7, 'x1': 0.05, 'x2': 0.2, 'y1': 0.85, 'y2': 1.0 },
-        { 'name': 'phone',            'type': 'T', 'font': 'hp',    'multiline': True, 'align': 'L', 'size': 7, 'x1': 0.2,  'x2': 1.8, 'y1': 1.15, 'y2': 1.3 },
-        { 'name': 'phone_icon',       'type': 'I', 'font': None,    'multiline': None, 'align': 'L', 'size': 7, 'x1': 0.05, 'x2': 0.2, 'y1': 1.15, 'y2': 1.3 },
-        { 'name': 'email',            'type': 'T', 'font': 'hp',    'multiline': True, 'align': 'L', 'size': 7, 'x1': 0.2,  'x2': 1.8, 'y1': 1.6, 'y2': 1.75 },
-        { 'name': 'email_icon',       'type': 'I', 'font': None,    'multiline': None, 'align': 'L', 'size': 7, 'x1': 0.05, 'x2': 0.2, 'y1': 1.6, 'y2': 1.75 },
+
+flow_start = info_margin
+
+# this information is used to compute the elements layout dynamically, based on the information we have
+# field meaning: (the id, line_height, total_height, {...object to be spreaded into the elements object})
+# will iterate from top down, if does not exist, will be collapsed
+flow = [
+        ("english_name",     0.15, 0.15, { 'type': 'T', 'font': 'hp',    'multiline': True, 'align': 'L', 'size': info_font_size}),
+        ("chinese_name",     0.15, 0.3,  { 'type': 'T', 'font': 'kaiti', 'multiline': True, 'align': 'L', 'size': header_font_size}),
+        ("children",         0.15, 0.15, { 'type': 'T', 'font': 'hp',    'multiline': True, 'align': 'L', 'size': info_font_size}),
+        ("children_chinese", 0.15, 0.15, { 'type': 'T', 'font': 'kaiti', 'multiline': True, 'align': 'L', 'size': info_font_size}),
+        ("address",          0.15, 0.15, { 'type': 'T', 'font': 'hp',    'multiline': True, 'align': 'L', 'size': info_font_size}),
+        ("phone",            0.15, 0.15, { 'type': 'T', 'font': 'hp',    'multiline': True, 'align': 'L', 'size': info_font_size}),
+        ("email",            0.15, 0.15, { 'type': 'T', 'font': 'hp',    'multiline': True, 'align': 'L', 'size': info_font_size}),
         ]
+
+# mapping between icon key and their corresponding content key. 
+# If none occurs, no icons will be generated. If multiple occurs, the smallest y value will be used to find the y coordinate.
+icon_flow = [
+        ("children_icon",  [ "children",  "children_chinese" ],
+            { 'type': 'I', 'font': None,  'multiline': None,    'align': 'L', 'size': info_font_size}),
+        ("address_icon",   [ "address" ],
+            { 'type': 'I', 'font': None,  'multiline': None,    'align': 'L', 'size': info_font_size}),
+        ("phone_icon",     [ "phone" ],
+            { 'type': 'I', 'font': None,  'multiline': None,    'align': 'L', 'size': info_font_size}),
+        ("email_icon",     [ "email" ],
+            { 'type': 'I', 'font': None,  'multiline': None,    'align': 'L', 'size': info_font_size}),
+        ]
+
+def gen_keyed_elements(flow, row):
+    """generate a elements dictionary, based on the 'name' attribute.
+    :flow: the global flow object
+    :returns: a keyed element dictionary
+         keyed_elements = {
+                 'english_name': {
+                      'type': 'T',
+                      'font': 'hp',
+                      'multiline': True,
+                      'align': 'L',
+                      'size': header_font_size,
+                      'x1': info_x1,
+                      'x2': info_x2,
+                      'y1': 0.1,
+                      'y2': 0.2 },
+                  ...
+                  }
+    """
+    keyed_elements = {}
+    y = flow_start
+    for name, line_height, total_height, obj in flow:
+        if name in row and pd.notnull(row[name]):
+            info_y1 = y
+            info_y2 = y + line_height
+            keyed_elements[name] = { **obj, 'x1' : info_x1, 'x2' : info_x2, 'y1' : info_y1, 'y2' : info_y2 }
+            print("nstr(row[name]): {}".format(nstr(row[name])))
+            # measured = 2.15625
+            # length = 2.1595
+            # measured = 1.40625
+            # length = 1.416
+            # But the actual measured text has some margin on the left, as well as right
+            length = ImageFont.truetype(
+                    fonts[obj['font']],obj['size']).getlength(
+                            nstr(row[name])) + 0.125 * 72 # get line length plus margin
+            print("length: {}".format(length))
+            nlines = - (length // -((info_x2 - info_x1) * 72)) # ceiling division, computing number of lines needed
+            print("nlines: {}".format(nlines))
+            incr = max(total_height, 
+                    line_height * len(nstr(row[name]).splitlines()),
+                    line_height * nlines
+                    )
+            y += incr # increment only if the row is rendered
+    return keyed_elements
+
+def gen_icon_y(icon_flow, keyed_elements):
+    """get the y coordinate in which to render the icon, given keyed elements
+
+    :keyed_elements: {
+                 'english_name': {
+                      'type': 'T',
+                      'font': 'hp',
+                      'multiline': True,
+                      'align': 'L',
+                      'size': header_font_size,
+                      'x1': info_x1,
+                      'x2': info_x2,
+                      'y1': 0.1,
+                      'y2': 0.2 },
+                  ...
+                  }
+    :returns: an updated keyed_elements with icons
+
+    """
+    for icon_name, keys, obj in icon_flow:
+        y1s = [ keyed_elements[key]['y1'] for key in keys if key in keyed_elements ]
+        if len(y1s) == 0: 
+            continue
+        icon_y1 = min(y1s) # get the first element to place the icon
+        icon_y2 = icon_y1 + icon_width # assume square icons
+        keyed_elements[icon_name] = { **obj, 'x1' : icon_x1, 'x2' : icon_x2, 'y1' : icon_y1, 'y2' : icon_y2 }
+    return keyed_elements
+
+def flatten_elements(keyed_elements):
+    """flatten the keyed elements
+        elements = [
+                { 'name': 'english_name',
+                    'type': 'T',
+                    'font': 'hp',
+                    'multiline': True,
+                    'align': 'L',
+                    'size': header_font_size,
+                    'x1': info_x1,
+                    'x2': info_x2,
+                    'y1': 0.1,
+                    'y2': 0.2 },
+                ...
+                ]
+    """
+    return [ { 'name': name, **obj } for name,obj in keyed_elements.items() ]
+
 
 #######################
 #  Utility Functions  #
@@ -132,7 +261,7 @@ def p(pdf, text, **kwargs):
 
 def render_toc(pdf, outline):
     pdf.set_auto_page_break(True, margin=0.3)
-    print("len(outline): {}".format(len(outline)))
+    # print("len(outline): {}".format(len(outline)))
     pdf.y += 0.1
     pdf.x = pdf.l_margin
     pdf.set_font("Courier", size=7)
@@ -140,7 +269,7 @@ def render_toc(pdf, outline):
         link = pdf.add_link()
         pdf.set_link(link, page=section.page_number)
         text = f'{" " * section.level * 2} {section.name} {"." * (48 - section.level*2 - len(section.name))} {section.page_number}'
-        print("text: {}".format(text))
+        # print("text: {}".format(text))
         p(pdf, text, align="J", link=link)
 
 def gen_pdf(df, fpdf, title=None):
@@ -148,6 +277,9 @@ def gen_pdf(df, fpdf, title=None):
     fpdf.set_auto_page_break(False)
 
     for i, row in df.iterrows():
+
+        # if i > 5: sys.exit(-1)
+
         img = get_img(nstr(row['key']))
         print("row['english_name']: {}".format(row['english_name']))
 
@@ -160,7 +292,7 @@ def gen_pdf(df, fpdf, title=None):
             with fpdf.local_context():
                 old_y = fpdf.y
                 fpdf.set_y(0.2 * header_height)
-                fpdf.set_font('hp',size=8)
+                fpdf.set_font('hp',size=info_font_size)
                 fpdf.cell(0, header_height, text=title, align='C')
                 fpdf.set_y(old_y)
 
@@ -169,7 +301,7 @@ def gen_pdf(df, fpdf, title=None):
             with fpdf.local_context():
                 old_y = fpdf.y
                 fpdf.set_y(-1.2 * footer_height)
-                fpdf.set_font('hp',size=8)
+                fpdf.set_font('hp',size=info_font_size)
                 fpdf.cell(0, footer_height, text=f'Page { fpdf.page_no() }', align='C')
                 fpdf.set_y(old_y)
 
@@ -193,13 +325,18 @@ def gen_pdf(df, fpdf, title=None):
                 ),
             )
             if i == 0 and title is not None:
-                print("title: {}".format(title))
+                # print("title: {}".format(title))
                 fpdf.start_section(title, level=0)
             fpdf.start_section(row['english_name'], level=1)
 
         even_page = (i // num_per_page) % 2 == 0
 
         # fill in information
+        keyed_elements = gen_keyed_elements(flow, row)
+        # print("keyed_elements: {}".format(keyed_elements))
+        keyed_elements = gen_icon_y(icon_flow, keyed_elements)
+        elements = flatten_elements(keyed_elements)
+
         info = FlexTemplate(fpdf, elements=elements)
         for e in elements:
             key = e['name']
@@ -207,7 +344,9 @@ def gen_pdf(df, fpdf, title=None):
                 info[key] = nstr(row[key])
             elif key.endswith("_icon"):
                 pre = key.removesuffix("_icon")
-                if pre in row and pd.notnull(row[pre]):
+                # if pre in row and pd.notnull(row[pre]):
+                # Display icon anyways
+                if pre in row:
                     info[key] = icons[pre]
 
         # do some computation on the layout
@@ -220,7 +359,8 @@ def gen_pdf(df, fpdf, title=None):
         info_y = header_height + (i % num_per_page) * item_height
 
         w,h = imagesize.get(img)
-        if w > h:
+
+        if h/w < item_height/img_width:
             # fit by width
             img_w = item_scale * (img_width - img_margin * 2)
             img_h = 0
@@ -247,8 +387,8 @@ def gen_pdf(df, fpdf, title=None):
 
 
 fpdf = FPDF(orientation="portrait", format=(page_width, page_height), unit="in")
-fpdf.add_font("kaiti", fname="./simkai.ttf")
-fpdf.add_font("hp", fname="./HPSimplified_Rg.ttf")
+for k,fname in fonts.items():
+    fpdf.add_font(k, fname=fname)
 
 df_current = pd.read_excel(f"info_new.xlsx", sheet_name="info_current")
 df_previous = pd.read_excel(f"info_new.xlsx", sheet_name="info_previous")
