@@ -3,11 +3,8 @@
 # TODO:
 # Script:
 # - Extract the configs to yaml
-# Documentation:
-# - How to run and set up on Windows?
-# - Example excel sheet and output.
-# - Demo for the options.
-# <2024-06-16, David Deng> #
+# - Use fpdf2
+# <2025-09-17, David Deng> #
 
 from datetime import datetime
 import pandas as pd
@@ -37,7 +34,7 @@ icons         = {
 fonts = {
         "kaiti": "./simkai.ttf",
         "hp": "./HPSimplified_Rg.ttf",
-        "noto": "./NotoEmoji.ttf",
+        # "noto": "./NotoEmoji.ttf",
 }
 
 ############
@@ -397,10 +394,10 @@ fpdf.add_page()
 fpdf.set_y(0.2)
 fpdf.set_font("hp", size=15)
 with fpdf.local_context():
-    p(fpdf, "GLCAC Directory List 2024", align="C")
+    p(fpdf, "Contact Book", align="C")
 
 if gen_toc:
-    fpdf.insert_toc_placeholder(render_toc, 2)
+    fpdf.insert_toc_placeholder(render_toc, 1, allow_extra_pages=True)
 
 gen_pdf(df_current, fpdf, "Current Members/Adherence")
 fpdf.add_page()
