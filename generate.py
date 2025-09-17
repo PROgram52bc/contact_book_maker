@@ -4,6 +4,7 @@
 # Script:
 # - Extract the configs to yaml
 # - Use fpdf2
+# - Fix line number calculation when there are three phone numbers
 # <2025-09-17, David Deng> #
 
 from datetime import datetime
