@@ -2,3 +2,4 @@ openpyxl
 pandas
 fpdf2
 imagesize
+pillow
