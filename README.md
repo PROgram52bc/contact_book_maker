@@ -4,6 +4,8 @@ Generate a beautifully formatted, image-rich **Contact Book** PDF from an Excel 
 
 This tool reads two sheets from a single workbook -- `info_current` and `info_previous` -- and lays out one contact per row with a photo, names, and optional details (address, phone, email, children). It can also create a table of contents and page numbers.
 
+A quick demo output file can be found at [demo.pdf](demo.pdf).
+
 ---
 
 ## ✨ Features
@@ -14,8 +16,6 @@ This tool reads two sheets from a single workbook -- `info_current` and `info_pr
 - **Table of contents** (optional) and **page numbers** (optional).
 - **Symmetric/reverse layout** controls.
 - **Multi-language capable**: Fonts included for Latin and CJK text (see Fonts section).
-
----
 
 ## 🧱 Project Structure
 
@@ -31,8 +31,7 @@ This tool reads two sheets from a single workbook -- `info_current` and `info_pr
     ├── pictures/             # your contact photos go here (you create this)
     ├── HPSimplified_*.ttf    # bundled Latin font family
     ├── simkai.ttf            # bundled CJK font (KaiTi)
-    ├── msyh*.ttc             # bundled Microsoft YaHei TTCs (not used by default)
-    └── NotoEmoji.ttf
+    └── msyh*.ttc             # bundled Microsoft YaHei TTCs (not used by default)
 
 ---
 
@@ -75,7 +74,7 @@ Declared in `requirements.txt`:
 3) Prepare your data & photos
    - Place your Excel workbook at: `./info_new.xlsx`
    - Create a `pictures/` folder and add images named by each row's `key`
-     (e.g., if `key = 001`, then `pictures/001.jpg` or `pictures/001.png`)
+     (e.g., if `key = abc`, then `pictures/abc.jpg` or `pictures/abc.png`)
 
 4) Run
 
@@ -110,7 +109,7 @@ Declared in `requirements.txt`:
 3) Prepare your data & photos
    - Put `info_new.xlsx` in the project root.
    - Create `pictures\` and add photos named after each row's `key`
-     (e.g., `pictures\001.jpg`).
+     (e.g., `pictures\abc.jpg`).
 
 4) Run
 
@@ -152,17 +151,17 @@ Each sheet should have the following columns. Only `key` and `english_name` are 
 
 ### Sheet Example (minimal)
 
-| key | english_name  |
-|-----|---------------|
-| 001 | Alice Johnson |
-| 002 | Bob Chen      |
+| key     | english_name    |
+| -----   | --------------- |
+| alice_j | Alice Johnson   |
+| bob_c   | Bob Chen        |
 
 ### Sheet Example (full)
 
-| key | english_name  | chinese_name | children | children_chinese | address                | phone          | email                |
-|-----|---------------|--------------|----------|------------------|------------------------|----------------|----------------------|
-| 001 | Alice Johnson |              | Evan, Mia|                  | 123 Maple St, City, ST | (555) 123-4567 | alice@example.com    |
-| 002 | Bob Chen      | 陈博         | Ryan     | 瑞安             | 456 Oak Ave, City, ST  | (555) 987-6543 | bob.chen@example.com |
+| key     | english_name    | chinese_name   | children   | children_chinese   | address                  | phone            | email                  |
+| -----   | --------------- | -------------- | ---------- | ------------------ | ------------------------ | ---------------- | ---------------------- |
+| alice_j | Alice Johnson   |                | Evan, Mia  |                    | 123 Maple St, City, ST   | (555) 123-4567   | alice@example.com      |
+| bob_c   | Bob Chen        | 陈博           | Ryan       | 瑞安               | 456 Oak Ave, City, ST    | (555) 987-6543   | bob.chen@example.com   |
 
 ---
 
@@ -184,7 +183,9 @@ Examples:
 
 Basic:
 
+```
     python generate.py
+```
 
 - Reads `info_new.xlsx` (sheets `info_current` and `info_previous`)
 - Adds fonts and icons from the repo
@@ -193,7 +194,10 @@ Basic:
 
 Custom output filename:
 
+```
     python generate.py my_directory_2025.pdf
+
+```
 
 ---
 
@@ -203,6 +207,7 @@ Open `generate.py` and look for the configuration block near the top. Common par
 
 ### Paths
 
+```python
     image_dir     = "pictures"   # where your photos live
     icon_dir      = "icons"      # where the UI icons live
     default_image = os.path.join(icon_dir, "anonymous.jpg")
@@ -215,23 +220,24 @@ Open `generate.py` and look for the configuration block near the top. Common par
     fonts = {
         "kaiti": "./simkai.ttf",              # CJK font
         "hp":    "./HPSimplified_Rg.ttf",     # Latin font
-        "noto":  "./NotoEmoji.ttf",           # optional; not used by default
     }
-
-If you don't have `NotoEmoji.ttf`, either add it or remove the `"noto"` entry -- no other changes needed.
+```
 
 ### Global switches
 
+```python
     gen_toc          = True   # include a table of contents
     gen_page_num     = True   # include page numbers
     gen_header       = True   # include section headers
     symmetric_layout = True   # flip image/info on even pages
     reverse_layout   = True   # flip image/info on all pages (XOR with 'symmetric_layout')
+```
 
 ### Layout and sizing
 
 All units are in inches.
 
+```python
     num_per_page   = 3     # entries per page (vertical stacking)
     item_height    = 2.0   # vertical space reserved per entry
 
@@ -246,6 +252,7 @@ All units are in inches.
     footer_height  = 0.2
 
     item_scale     = 1.0   # scale factor applied to the template and image sizing
+```
 
 ### Field flow & icons
 
@@ -255,12 +262,14 @@ The script defines a top-down flow of fields; missing fields collapse vertically
 
 It also auto-positions icons next to the first line that applies:
 
+```python
     icon_flow = [
         ("children_icon",  ["children", "children_chinese"], { 'type': 'I', ... }),
         ("address_icon",   ["address"],                      { 'type': 'I', ... }),
         ("phone_icon",     ["phone"],                        { 'type': 'I', ... }),
         ("email_icon",     ["email"],                        { 'type': 'I', ... }),
     ]
+```
 
 You can adjust order, add new icons, or remove any mapping. If you add new fields to your Excel sheets, add them to the `flow` list in the same section.
 
@@ -270,26 +279,36 @@ You can adjust order, add new icons, or remove any mapping. If you add new field
 
 Generate with default filename:
 
+```
     python generate.py
+```
 
 Generate with a custom filename:
 
+```
     python generate.py ChurchDirectory_Fall2025.pdf
+```
 
 Change entries per page (e.g., 4 per page):
 
+```
     # in generate.py
     num_per_page = 4
     item_height  = 1.7   # tweak to fit layout nicely
+```
 
 Disable symmetric layout and always keep image on the left:
 
+```
     symmetric_layout = False
     reverse_layout   = False
+```
 
 Turn off table of contents:
 
+```
     gen_toc = False
+```
 
 ---
 
@@ -299,7 +318,6 @@ By default, the script loads:
 
 - `hp` → `HPSimplified_Rg.ttf` (Latin; included)
 - `kaiti` → `simkai.ttf` (CJK; included)
-- `noto` → `NotoEmoji.ttf` (optional; not used unless you reference it)
 
 If you see missing glyphs, ensure the font you've assigned contains them, or add another TTF/OTF and register it in the `fonts` map, then reference that font name in the flow definitions.
 
@@ -323,7 +341,7 @@ If you see missing glyphs, ensure the font you've assigned contains them, or add
 
 - "No module named …" → Activate your venv and `pip install -r requirements.txt`.
 - "UnicodeEncodeError" / Missing characters → Use a font that supports your characters and ensure it is added via `fpdf.add_font` (already handled in the script for bundled fonts).
-- Photos not showing → Check `pictures/<key>.jpg|png|jpeg` exists; otherwise the default `icons/anonymous.jpg` is used.
+- Photos not showing → Check `pictures/<key>.jpg|png|jpeg` exists; otherwise the default `icons/anonymous.jpg` is used. Note that the keys should start with an alphabet.
 - Wrong sheet names → Ensure your workbook contains sheets named exactly `info_current` and `info_previous`.
 - Layout overflows or overlaps → Lower `num_per_page` or increase `item_height`; you can also reduce `item_scale`.
 
